@@ -3,13 +3,14 @@ const sequelize = require("../config/db");
 
 
 const Note = sequelize.define("Note", {
-NoteId: {type: DataTypes.INTEGER},
-Content: {type: DataTypes.STRING},
-LeftNote: {type: DataTypes.INTEGER, defaultValue: 10 },
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    NoteId: { type: DataTypes.INTEGER, allowNull: false },
+    Content: { type: DataTypes.STRING },
+    LeftNote: { type: DataTypes.INTEGER, allowNull: true },
 },
-{
-    tableName:"Note",
-    timestamps:true
-})
+    {
+        tableName: "Note",
+        timestamps: true
+    })
 
-module.exports = Note;
+module.exports = { Note };    

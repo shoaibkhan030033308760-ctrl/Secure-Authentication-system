@@ -33,10 +33,12 @@ try {
           isVerified: false,
         });
       }
-    } else if (user.isVerified) {
-      return reply.code(429).send({ message: "user already register" })
     }
-   
+
+    // if (user.isVerified) {
+    //   return reply.code(429).send({ message: "user already register" })
+    // }
+  
     const lastOtp = await Otp.findOne({
       where: {
         userId: user.id,
@@ -54,6 +56,7 @@ try {
         });
       }
     }
+    
     const otp = generateOtp();
     const expireAt = new Date(Date.now() + 5 * 60 * 1000);
     await Otp.create({
@@ -176,6 +179,25 @@ async function login(req, reply) {
       const otps = generateOtp()
       const expire = new Date(Date.now() + 1000 * 300)
 
+
+    const lastOtp = await Otp.findOne({
+      where: {
+        userId: user.id,
+        purpose
+      },
+      order: [["createdAt", "DESC"]],
+    });
+    if (lastOtp) {
+      const diffSeconds =
+        (Date.now() - new Date(lastOtp.createdAt).getTime()) / 1000;
+
+      if (diffSeconds < 30) {
+        return reply.code(429).send({
+          message: `Wait ${Math.ceil(30 - diffSeconds)} seconds`,
+        });
+      }
+    }
+
       await Otp.create({
         Otpcode: otps,
         expireAt: expire,
@@ -194,7 +216,7 @@ async function login(req, reply) {
     }
 
     const token = await sodium.to_hex(sodium.randombytes_buf(64));
-    const expireT = new Date(Date.now() + 10 * 60 * 1000)
+    const expireT = new Date(Date.now() + 36000 * 1000)
 
     user.token = token;
     user.expireToken = expireT;
@@ -222,7 +244,7 @@ async function verifyLoginOtp(req, reply) {
   if (dbOtp.expireAt < new Date()) {
     return reply.code(400).send({ messge: "expired" })
   }
-  const token = await sodium.to_hex(sodium.randombytes_buf(64));
+  const token =  await sodium.to_hex(sodium.randombytes_buf(64));
   const expire = new Date(Date.now() + 10 * 60 * 1000);
 
   user.token = token;
@@ -300,6 +322,4 @@ async function resetPassword(req, reply) {
     return reply.code(501).send({ message: err.message });
   }
 }
-
 module.exports = { sendOtp, register, login, resetPassword, verifyLoginOtp };
-// 

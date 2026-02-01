@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const { Otp } = require("./Otp")
+const { Note } = require("./Notes")
 
 const User = sequelize.define('User', {
   id: {
@@ -57,4 +58,6 @@ const User = sequelize.define('User', {
 User.hasMany(Otp, { foreignKey: "userId" })
 Otp.belongsTo(User, { foreignKey: "userId" })
 
+User.hasMany(Note, {foreignKey: "userId"})
+Note.belongsTo(User, {foreignKey: "userId"})
 module.exports = { User }

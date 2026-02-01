@@ -3,25 +3,34 @@ const swaggerUI = require('@fastify/swagger-ui');
 const fp = require('fastify-plugin');
 
 async function swaggerPlugin(fastify, options) {
-
-  await fastify.register(swagger, {
-    mode: 'dynamic',
-    openapi: {
-      info: {
-        title: 'Fastify API',
-        description: 'Swagger is working 😎',
-        version: '1.0.0'
+fastify.register(require('@fastify/swagger'), {
+  routePrefix: '/docs',
+  swagger: {
+    info: {
+      title: 'My API',
+      description: 'API documentation',
+      version: '1.0.0'
+    },
+    securityDefinitions: {
+      BearerAuth: {
+        type: 'apiKey',
+        name: 'Authorization',
+        in: 'header',
       }
-    }
-  });
+    },
+    security: [{ BearerAuth: [] }],
+  },
+  // exposeRoute: true,
+});
 
+
+const swaggerUI = require('@fastify/swagger-ui');
 
 await fastify.register(swaggerUI, {
   routePrefix: '/docs',
   uiConfig: {
-   docExpansion: 'list'
+    docExpansion: 'list'
   },
-  exposeRoute: true
 });
 
 }

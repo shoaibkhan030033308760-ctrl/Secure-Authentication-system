@@ -1,5 +1,6 @@
 async function expireOtp() {
-return new Date(Date.now() + 1000 * 300)
+    const expire =  new Date(Date.now() + 1000 * 300)
+return expire
 }
 
 module.exports = { expireOtp }
