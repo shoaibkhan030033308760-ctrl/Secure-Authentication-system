@@ -16,14 +16,14 @@ async function swaggerPlugin(fastify, options) {
   });
 
 
+await fastify.register(swaggerUI, {
+  routePrefix: '/docs',
+  uiConfig: {
+   docExpansion: 'list'
+  },
+  exposeRoute: true
+});
 
-  await fastify.register(swaggerUI, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list'
-    },
-   
-  });
 }
 
 module.exports = fp(swaggerPlugin);

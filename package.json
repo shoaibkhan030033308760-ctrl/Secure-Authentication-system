@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.6.1",
@@ -25,9 +24,7 @@
     "libsodium-wrappers-sumo": "^0.8.2",
     "mysql2": "^3.16.1",
     "nodemailer": "^7.0.12",
-    "sequelize": "^6.37.7",
-    "sumo": "^0.0.0",
-    "wrappers": "^0.2.3"
+    "sequelize": "^6.37.7"
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.5"

@@ -4,7 +4,6 @@ const { expireOtp } = require("../otp/expireOtp")
 const sodium = require('libsodium-wrappers-sumo')
 const { User } = require('../model/user');
 const { Otp } = require("../model/Otp");
-const { where } = require('sequelize');
 
 const passwordregex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/
 
@@ -303,3 +302,4 @@ async function resetPassword(req, reply) {
 }
 
 module.exports = { sendOtp, register, login, resetPassword, verifyLoginOtp };
+// 
