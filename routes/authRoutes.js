@@ -1,7 +1,6 @@
 const { sendOtp, register, login, resetPassword, verifyLoginOtp } = require('../controller/authController');
 
 async function authroutes(fastify, options) {
-  // ---------- Send OTP ----------
   fastify.post('/sendOtp', {
     config: {
       rateLimit: { max: 3, timeWindow: "10 second" },
@@ -26,8 +25,6 @@ async function authroutes(fastify, options) {
       },
     },
   }, sendOtp);
-
-  // ---------- Register ----------
   fastify.post('/register', {
     config: {
       rateLimit: { max: 3, timeWindow: "10 second" },
@@ -43,7 +40,7 @@ async function authroutes(fastify, options) {
           email: { type: 'string', format: 'email' },
           password: { type: 'string' },
           otp: { type: 'string' },
-          twoFactorEnabled: { type: 'string' } // better: "boolean" if possible
+          twoFactorEnabled: { type: 'string' } 
         }
       },
       response: {
@@ -54,7 +51,7 @@ async function authroutes(fastify, options) {
     },
   }, register);
 
-  // ---------- Login ----------
+
   fastify.post('/login', {
     config: { rateLimit: { max: 2, timeWindow: "10 second" } },
     schema: {
@@ -70,7 +67,6 @@ async function authroutes(fastify, options) {
     },
  }, login);
 
-  // ---------- Verify Login OTP ----------
   fastify.post('/verify-login-otp', {
     config: { rateLimit: { max: 4, timeWindow: "10 second" } },
     schema: {
@@ -85,7 +81,6 @@ async function authroutes(fastify, options) {
     },
   }, verifyLoginOtp);
 
-  // ---------- Reset Password ----------
   fastify.post('/reset-password', {
     config: { rateLimit: { max: 5, timeWindow: "10 second" } },
     schema: {

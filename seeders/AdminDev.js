@@ -5,15 +5,16 @@ const { User } = require("../model/user");
 async function create() {
     await sodium.ready;
 
-    const user = await User.findOne({ where: { email: process.env.EMAIL } });
-    const password = "test1234";
+    const user = await User.findOne({ where: { email: process.env.EMAIL_ADMIN } });
+    const password = process.env.ADMIN_PASSWORD;
 
     if (!user) {
         await User.create({
-            name: "Test",
-            email: process.env.EMAIL,
+            name: "Admin",
+            email: process.env.EMAIL_ADMIN,
             password: password,
-            isVerified: true
+            isVerified: true,
+            role: admin,
         });
         console.log("User created successfully.");
     } else {

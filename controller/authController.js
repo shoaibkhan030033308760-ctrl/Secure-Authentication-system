@@ -4,6 +4,7 @@ const { expireOtp } = require("../otp/expireOtp")
 const sodium = require('libsodium-wrappers-sumo')
 const { User } = require('../model/user');
 const { Otp } = require("../model/Otp");
+const { Subscription } = require('../model/Subscription');
 
 const passwordregex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/
 
@@ -20,7 +21,7 @@ try {
 
      if (purpose === "forgot") {
       if (!user) {
-        return reply.code(401).send ({message:"user not found"})
+        return reply.code(404).send ({message:"user not found"})
       }
        if (!user.isVerified) {
         return reply.code(404).send({ message: "You Are Not Eligibel for this Function" });
@@ -33,12 +34,12 @@ try {
           isVerified: false,
         });
       }
-    }
-
-    // if (user.isVerified) {
-    //   return reply.code(429).send({ message: "user already register" })
-    // }
+       else if(user.isVerified) {
+      return reply.code(429).send({ message: "user already register" })
+   }
   
+    }
+   
     const lastOtp = await Otp.findOne({
       where: {
         userId: user.id,
@@ -66,6 +67,12 @@ try {
       userId: user.id
     });
 
+    // Otp.destroy({
+    //   where: {
+    //     expireAt: {[Op.lt]: new Date() }
+    //   }
+    // })
+
     await transporter.sendMail({
       to: email,
       subject:
@@ -79,7 +86,7 @@ try {
 
   } catch (err) {
     console.error(err);
-    return reply.code(500).send({ message: "Internal server error" });
+    return reply.code(500).send({ message: err.message });
   }
 }
 async function register(req, reply) {
@@ -124,6 +131,11 @@ if (!user) {
       return reply.code(400).send({ message: "invalid or expired otp" })
     }
 
+
+await Subscription.create({
+  userId : user.id,
+})
+
     await User.update({
       name,
       password: hash,
@@ -137,10 +149,17 @@ if (!user) {
       }
     )
 
-    dbotp.destroy()
+
+
+ dbotp.destroy()
+
+setTimeout(async () => {
+  await dpotp.destroy()
+})
 
     return reply.code(201).send({ message: "Registration successful", userId: user.id });
   }
+
   catch (err) {
     return reply.code(500).send({ message: err.message })
   }
@@ -151,7 +170,7 @@ async function login(req, reply) {
     await sodium.ready;
     const { email, password } = req.body;
     if (!email || !password) {
-      return reply.code(501).send({ message: "email , password require" })
+      return reply.code(400).send({ message: "email , password require" })
     }
     const user = await User.findOne({ where: { email } })
     if (!user) {
@@ -165,11 +184,11 @@ async function login(req, reply) {
       if (user.failedLoginAttempts >= 4) {
         user.isLocked = true;
         await user.save()
-        return reply.code(401).send({ message: "your account is is Locked reset you password" })
+        return reply.code(403).send({ message: "your account is is Locked reset you password" })
       }
 
       await user.save()
-      return reply.code(404).send({ message: `password is wrong ${attempts} attempts left` });
+      return reply.code(401).send({ message: `password is wrong ${attempts} attempts left` });
 
     }
     user.failedLoginAttempts = 0;
@@ -183,7 +202,7 @@ async function login(req, reply) {
     const lastOtp = await Otp.findOne({
       where: {
         userId: user.id,
-        purpose
+        purpose: "register"
       },
       order: [["createdAt", "DESC"]],
     });
@@ -197,15 +216,12 @@ async function login(req, reply) {
         });
       }
     }
-
       await Otp.create({
         Otpcode: otps,
         expireAt: expire,
         purpose: "login",
         userId: user.id
       })
-
-
       transporter.sendMail({
         to: email,
         subject: "your login code",
@@ -216,7 +232,7 @@ async function login(req, reply) {
     }
 
     const token = await sodium.to_hex(sodium.randombytes_buf(64));
-    const expireT = new Date(Date.now() + 36000 * 1000)
+    const expireT = new Date(Date.now() + 3600 * 1000)
 
     user.token = token;
     user.expireToken = expireT;
@@ -224,7 +240,7 @@ async function login(req, reply) {
     return reply.code(200).send({ token: user.token })
   }
   catch (err) {
-    return reply.code(501).send({ message: err.message })
+    return reply.code(500).send({ message: err.message })
   }
 }
 
@@ -232,7 +248,7 @@ async function verifyLoginOtp(req, reply) {
   const { email, otp } = req.body;
 
   const user = await User.findOne({ where: { email } });
-  if (!user) return reply.code(400).send({ message: "Invalid credentials" });
+  if (!user) return reply.code(401).send({ message: "Invalid credentials" });
 
   const dbOtp = await Otp.findOne({
     where: { purpose: "login", Otpcode: otp, userId: user.id },
@@ -245,18 +261,23 @@ async function verifyLoginOtp(req, reply) {
     return reply.code(400).send({ messge: "expired" })
   }
   const token =  await sodium.to_hex(sodium.randombytes_buf(64));
-  const expire = new Date(Date.now() + 10 * 60 * 1000);
+  const expire = new Date(Date.now() + 3600 * 1000);
 
   user.token = token;
   user.expireToken = expire;
   await user.save()
 
   await dbOtp.destroy()
+  
+  // Otp.destroy({
+  //   where: {
+  //     expireAt: {[Op.lt]: new Date}
+  //   }
+  //})
 
 
   return reply.code(200).send({ message: "Login successful", token });
 }
-
 async function resetPassword(req, reply) {
   try {
     await sodium.ready;
@@ -278,14 +299,11 @@ async function resetPassword(req, reply) {
     if (otpRecord.expireAt < new Date()) {
       return reply.code(400).send({ message: "OTP expired" });
     }
-
-
     if (!passwordregex.test(newPassword)) {
-      return reply.code(401).send({
+      return reply.code(400).send({
         message: "Minimum 8 characters and 1 special character required"
       });
     }
-
     let tfEnabled;
     if (typeof twoFactorEnabled === "boolean") {
       tfEnabled = twoFactorEnabled;
@@ -296,8 +314,6 @@ async function resetPassword(req, reply) {
     } else {
       return reply.code(400).send({ error: "Invalid twoFactorEnabled value  Enable and Disable" });
     }
-
-
     const hash = await sodium.crypto_pwhash_str(
       newPassword,
       sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
@@ -317,9 +333,15 @@ async function resetPassword(req, reply) {
 
     otpRecord.destroy()
 
+    Otp.destroy({
+      where: {
+        expireAt: {[Op.lt]: new Date()}
+      }
+    })
+
     return reply.code(200).send({ message: `Password reset successful and And 2FA is ${tfEnabled}` });
   } catch (err) {
-    return reply.code(501).send({ message: err.message });
+    return reply.code(500).send({ message: err.message });
   }
 }
 module.exports = { sendOtp, register, login, resetPassword, verifyLoginOtp };
